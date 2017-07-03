@@ -1,25 +1,191 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Project 1 - Reproduce"
+author: "Itamar Simon"
+date: "July 3, 2017"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading relevant libraries
+```{r , echo = TRUE}
+
+library("ggplot2"); library("dplyr"); library("lubridate"); library(tidyr)
+
+```
 
 ## Loading and preprocessing the data
 
 
+```{r , echo = TRUE}
+# Download the data and unzip
+
+if(!file.exists("./project1")){dir.create("./project1")}
+fileurl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+download.file(fileurl,destfile="./project1/Dataset.zip")
+unzip(zipfile = "./project1/Dataset.zip", exdir="./project1")
+
+# Readin the data
+dataset <- read.csv("~/coursera/project1/activity.csv", na.strings = "NA", stringsAsFactors = FALSE)
+
+# Turn date column into date format
+
+dataset$date <- ymd(dataset$date)
+
+# Add weekends and weekdays for further questions
+
+dataset <- mutate(dataset, weekday = wday(date, label = TRUE, abbr = FALSE)) %>%
+  mutate(daytype = if_else(weekday == "Saturday" | 
+                            weekday =="Sunday", "weekend", "weekday"))
+
+```
 
 ## What is mean total number of steps taken per day?
 
 
+```{r, echo = TRUE}
+
+# Extrract the relevant data, group by date and summarize by sum steps taken per day
+
+clean <- select(dataset, steps, date) %>% 
+  replace_na(list(steps=0)) %>%
+  group_by(date) %>%
+  summarise(sum(steps))
+  
+names(clean) <- c("date" , "steps")
+
+# Plot a histogram of total steps taken per day
+
+qplot(steps, data = clean, 
+      geom = "histogram", 
+      main = "Total Steps Taken per day",
+      fill = I("blue"),
+      col = I("black"),
+      binwidth = 1000,
+      breaks=seq(from=0, to=25000, by=2500)) +
+      theme_update(plot.title = element_text(hjust = 0.5)) +
+      xlab("Total Number of steps") +
+      ylab("Frequency") 
+      
+# Calculate mean and median of total steps per day
+
+meansteps <- mean(clean$steps)
+mediansteps <- median(clean$steps)
+
+```
+* Mean: `r meansteps`
+* Median: `r mediansteps`
 
 ## What is the average daily activity pattern?
 
+```{r, echo = TRUE}
 
+# Extract the relevant data and group by interval and remove NA's
+
+clean1 <- select(dataset, steps, interval) %>% 
+  na.omit() %>%
+  group_by(interval) %>%
+  summarise(mean(steps))
+names(clean1) <- c("interval" , "mean")
+
+# Plot a time series
+
+qplot(x=interval, y=mean, data = clean1,
+      main = "Time series average number of steps per interval (NA removed)",
+      xlab = "Interval (minutes in day)",
+      ylab = "Average steps per interval"
+      )+
+  geom_line(color = "blue", size = 2)
+
+# Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+maxinterval <- filter(clean1, mean == max(clean1$mean)) 
+
+```
+* Max 5 minute interval: `r maxinterval$interval`
 
 ## Imputing missing values
 
+1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+
+* Number of NA's in the dataset: `r sum(is.na(dataset))`
+
+2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r, echo = TRUE}
+# I will use the mean of steps per day to replace the missing values
+
+# Calculate the mean
+
+clean2 <- select(dataset, steps, date) %>% 
+  na.omit() %>%
+  group_by(date) %>%
+  summarise(mean(steps))
+names(clean2) <- c("interval" , "mean")
+avgmean <- mean(clean2$mean)
+
+# Replace NA's
+datasetclean <- replace_na(dataset, list(steps = avgmean))
+
+```
+4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+``` {r, echo = TRUE}
+
+# Extract the data
+clean3 <- select(datasetclean, steps, date) %>% 
+  group_by(date) %>%
+  summarise(sum(steps))
+  
+names(clean3) <- c("date" , "steps")
+
+# Plot a histogram of total steps taken per day
+
+qplot(steps, data = clean3, 
+      geom = "histogram", 
+      main = "Total Steps Taken per day",
+      fill = I("blue"),
+      col = I("black"),
+      binwidth = 1000,
+      breaks=seq(from=0, to=25000, by=2500)) +
+      theme_update(plot.title = element_text(hjust = 0.5)) +
+      xlab("Total Number of steps") +
+      ylab("Frequency") 
+      
+# Calculate mean and median of total steps per day
+
+meansteps1 <- mean(clean3$steps)
+mediansteps1 <- median(clean3$steps)
+
+```
+* Mean: `r meansteps1`
+* Median: `r mediansteps1`
+
+# The impact of missing values is that the mean and median increase
+
+1. Are there differences in activity patterns between weekdays and weekends?
+
+``` {r, echo = TRUE}
+# Extract the relevant data and replace missing values
+
+clean4 <- select(dataset, daytype, interval, steps) %>%
+  replace_na(list(steps = avgmean)) %>%
+  group_by(daytype, interval) %>%
+  summarise(mean(steps))
+names(clean4) <- c("daytype" , "interval", "mean")
+
+# Plot a time series
+
+g <- ggplot(data = clean4, aes(x=interval, y=mean)) +
+  geom_line(color = "blue", size = 1) +
+  facet_grid(.~daytype)
+g
+  
+```
 
 
-## Are there differences in activity patterns between weekdays and weekends?
+* There is a difference in activity between weekend and weekday
