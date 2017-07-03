@@ -1,27 +1,48 @@
----
-title: "Project 1 - Reproduce"
-author: "Itamar Simon"
-date: "July 3, 2017"
-output: 
-  html_document: 
-    keep_md: yes
----
+# Project 1 - Reproduce
+Itamar Simon  
+July 3, 2017  
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 
 ## Loading relevant libraries
-```{r , echo = TRUE}
 
+```r
 library("ggplot2"); library("dplyr"); library("lubridate"); library(tidyr)
+```
 
+```
+## 
+## Attaching package: 'dplyr'
+```
+
+```
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```
+## 
+## Attaching package: 'lubridate'
+```
+
+```
+## The following object is masked from 'package:base':
+## 
+##     date
 ```
 
 ## Loading and preprocessing the data
 
 
-```{r , echo = TRUE}
+
+```r
 # Download the data and unzip
 
 if(!file.exists("./project1")){dir.create("./project1")}
@@ -41,14 +62,13 @@ dataset$date <- ymd(dataset$date)
 dataset <- mutate(dataset, weekday = wday(date, label = TRUE, abbr = FALSE)) %>%
   mutate(daytype = if_else(weekday == "Saturday" | 
                             weekday =="Sunday", "weekend", "weekday"))
-
 ```
 
 ## What is mean total number of steps taken per day?
 
 
-```{r, echo = TRUE}
 
+```r
 # Extrract the relevant data, group by date and summarize by sum steps taken per day
 
 clean <- select(dataset, steps, date) %>% 
@@ -70,20 +90,23 @@ qplot(steps, data = clean,
       theme_update(plot.title = element_text(hjust = 0.5)) +
       xlab("Total Number of steps") +
       ylab("Frequency") 
-      
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+
+```r
 # Calculate mean and median of total steps per day
 
 meansteps <- mean(clean$steps)
 mediansteps <- median(clean$steps)
-
 ```
-* Mean: `r meansteps`
-* Median: `r mediansteps`
+* Mean: 9354.2295082
+* Median: 1.0395\times 10^{4}
 
 ## What is the average daily activity pattern?
 
-```{r, echo = TRUE}
 
+```r
 # Extract the relevant data and group by interval and remove NA's
 
 clean1 <- select(dataset, steps, interval) %>% 
@@ -100,25 +123,29 @@ qplot(x=interval, y=mean, data = clean1,
       ylab = "Average steps per interval"
       )+
   geom_line(color = "blue", size = 2)
+```
 
+![](PA1_template_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+
+```r
 # Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
 maxinterval <- filter(clean1, mean == max(clean1$mean)) 
-
 ```
-* Max 5 minute interval: `r maxinterval$interval`
+* Max 5 minute interval: 835
 
 ## Imputing missing values
 
 1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
 
-* Number of NA's in the dataset: `r sum(is.na(dataset))`
+* Number of NA's in the dataset: 2304
 
 2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
 
 3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
 
-```{r, echo = TRUE}
+
+```r
 # I will use the mean of steps per day to replace the missing values
 
 # Calculate the mean
@@ -132,12 +159,11 @@ avgmean <- mean(clean2$mean)
 
 # Replace NA's
 datasetclean <- replace_na(dataset, list(steps = avgmean))
-
 ```
 4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
 
-``` {r, echo = TRUE}
 
+```r
 # Extract the data
 clean3 <- select(datasetclean, steps, date) %>% 
   group_by(date) %>%
@@ -157,21 +183,25 @@ qplot(steps, data = clean3,
       theme_update(plot.title = element_text(hjust = 0.5)) +
       xlab("Total Number of steps") +
       ylab("Frequency") 
-      
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+
+```r
 # Calculate mean and median of total steps per day
 
 meansteps1 <- mean(clean3$steps)
 mediansteps1 <- median(clean3$steps)
-
 ```
-* Mean: `r meansteps1`
-* Median: `r mediansteps1`
+* Mean: 1.0766189\times 10^{4}
+* Median: 1.0766189\times 10^{4}
 
 # The impact of missing values is that the mean and median increase
 
 1. Are there differences in activity patterns between weekdays and weekends?
 
-``` {r, echo = TRUE}
+
+```r
 # Extract the relevant data and replace missing values
 
 clean4 <- select(dataset, daytype, interval, steps) %>%
@@ -186,8 +216,9 @@ g <- ggplot(data = clean4, aes(x=interval, y=mean)) +
   geom_line(color = "blue", size = 1) +
   facet_grid(.~daytype)
 g
-  
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 
 * There is a difference in activity between weekend and weekday
